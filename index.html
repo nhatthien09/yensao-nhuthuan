@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yến Sào Như Thuận</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background-color: #fffaf0; }
+    .brand { color: #d4af37; font-weight: bold; font-size: 1.5rem; }
+    .loading-overlay {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: white; z-index: 9999; display: flex; align-items: center; justify-content: center;
+    }
+    .spinner {
+      border: 5px solid #f3f3f3;
+      border-top: 5px solid #d4af37;
+      border-radius: 50%;
+      width: 50px; height: 50px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    .popup {
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+      z-index: 9998; display: none;
+    }
+    .popup-content {
+      background: white; padding: 20px; border-radius: 10px; text-align: center; max-width: 300px;
+    }
+    .product-card { transition: transform 0.3s; }
+    .product-card:hover { transform: scale(1.05); }
+  </style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-overlay">
+  <div class="spinner"></div>
+</div>
+
+<!-- Popup khuyến mãi -->
+<div id="promoPopup" class="popup">
+  <div class="popup-content">
+    <h2 class="text-lg font-bold mb-2">🎉 Khuyến mãi đặc biệt 🎉</h2>
+    <p>Mua 2 tặng 1 - Áp dụng trong hôm nay!</p>
+    <button onclick="closePopup()" class="mt-4 bg-yellow-500 text-white px-4 py-2 rounded">Đóng</button>
+  </div>
+</div>
+
+<!-- Header -->
+<header class="bg-white shadow p-4 flex justify-between items-center">
+  <div class="brand">Yến Sào Như Thuận</div>
+  <nav class="space-x-4">
+    <a href="#" onclick="showPage('home')" class="hover:underline">Trang chủ</a>
+    <a href="#" onclick="showPage('products')" class="hover:underline">Sản phẩm</a>
+    <a href="#" onclick="showPage('cart')" class="hover:underline">Giỏ hàng (<span id="cartCount">0</span>)</a>
+    <a href="#" onclick="showPage('contact')" class="hover:underline">Liên hệ</a>
+    <a href="#" onclick="showPage('admin')" class="hover:underline">Admin</a>
+  </nav>
+</header>
+
+<!-- Main -->
+<main class="p-4">
+  <!-- Home -->
+  <section id="homePage">
+    <div class="relative w-full overflow-hidden" style="height: 300px;">
+      <div id="slideshow" class="absolute w-full h-full flex transition-transform duration-700">
+        <img src="https://picsum.photos/800/300?random=1" class="w-full object-cover" />
+        <img src="https://picsum.photos/800/300?random=2" class="w-full object-cover" />
+        <img src="https://picsum.photos/800/300?random=3" class="w-full object-cover" />
+      </div>
+    </div>
+    <h1 class="text-2xl font-bold mt-6">Chào mừng đến với Yến Sào Như Thuận</h1>
+    <p class="mt-2">Chuyên cung cấp yến sào chất lượng cao, đảm bảo sức khỏe và dinh dưỡng.</p>
+  </section>
+
+  <!-- Products -->
+  <section id="productsPage" class="hidden">
+    <h2 class="text-xl font-bold mb-4">Sản phẩm</h2>
+    <input id="searchInput" type="text" placeholder="Tìm kiếm sản phẩm..." class="border p-2 w-full mb-4" />
+    <div id="productList" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4"></div>
+  </section>
+
+  <!-- Cart -->
+  <section id="cartPage" class="hidden">
+    <h2 class="text-xl font-bold mb-4">Giỏ hàng</h2>
+    <div id="cartItems"></div>
+    <button onclick="checkout()" class="mt-4 bg-green-500 text-white px-4 py-2 rounded">Thanh toán</button>
+  </section>
+
+  <!-- Contact -->
+  <section id="contactPage" class="hidden">
+    <h2 class="text-xl font-bold mb-4">Liên hệ</h2>
+    <p>📞 Điện thoại: 0123 456 789</p>
+    <p>📧 Email: lienhe@nhuthuan.com</p>
+  </section>
+
+  <!-- Admin -->
+  <section id="adminPage" class="hidden">
+    <h2 class="text-xl font-bold mb-4">Quản lý sản phẩm</h2>
+    <div class="mb-4">
+      <input id="adminName" type="text" placeholder="Tên sản phẩm" class="border p-2 mr-2" />
+      <input id="adminPrice" type="number" placeholder="Giá" class="border p-2 mr-2" />
+      <button onclick="addProduct()" class="bg-blue-500 text-white px-4 py-2 rounded">Thêm</button>
+    </div>
+    <div id="adminList"></div>
+  </section>
+</main>
+
+<script>
+  // Loading
+  window.addEventListener('load', () => {
+    document.querySelector('.loading-overlay').style.display = 'none';
+    setTimeout(() => { document.getElementById('promoPopup').style.display = 'flex'; }, 500);
+  });
+  function closePopup() { document.getElementById('promoPopup').style.display = 'none'; }
+
+  // Navigation
+  function showPage(page) {
+    ['home','products','cart','contact','admin'].forEach(p => {
+      document.getElementById(p+'Page').classList.add('hidden');
+    });
+    document.getElementById(page+'Page').classList.remove('hidden');
+    if(page==='products') renderProducts();
+    if(page==='cart') renderCart();
+    if(page==='admin') renderAdmin();
+  }
+
+  // Slideshow
+  let slideIndex = 0;
+  setInterval(() => {
+    const slides = document.querySelector('#slideshow');
+    slideIndex = (slideIndex+1) % 3;
+    slides.style.transform = `translateX(-${slideIndex*100}%)`;
+  }, 3000);
+
+  // Products
+  let products = JSON.parse(localStorage.getItem('products')) || [
+    {id:1, name:"Yến Sào Cao Cấp", price:3000000},
+    {id:2, name:"Yến Sào Thượng Hạng", price:5000000},
+    {id:3, name:"Nước Yến Bổ Dưỡng", price:500000}
+  ];
+  function renderProducts() {
+    const q = document.getElementById('searchInput').value.toLowerCase();
+    const list = document.getElementById('productList');
+    list.innerHTML = '';
+    products.filter(p=>p.name.toLowerCase().includes(q)).forEach(p => {
+      const card = document.createElement('div');
+      card.className = 'border p-4 rounded product-card bg-white';
+      card.innerHTML = `<h3 class="font-bold">${p.name}</h3>
+                        <p>${p.price.toLocaleString()} đ</p>
+                        <button onclick="addToCart(${p.id})" class="mt-2 bg-yellow-500 text-white px-3 py-1 rounded">Thêm vào giỏ</button>`;
+      list.appendChild(card);
+    });
+  }
+  document.getElementById('searchInput').addEventListener('input', renderProducts);
+
+  // Cart
+  let cart = JSON.parse(localStorage.getItem('cart')) || [];
+  function addToCart(id) {
+    const item = cart.find(i=>i.id===id);
+    if(item) { item.qty++; }
+    else { cart.push({...products.find(p=>p.id===id), qty:1}); }
+    localStorage.setItem('cart', JSON.stringify(cart));
+    updateCartCount();
+  }
+  function updateCartCount() { document.getElementById('cartCount').textContent = cart.reduce((a,c)=>a+c.qty,0); }
+  function renderCart() {
+    const container = document.getElementById('cartItems');
+    container.innerHTML = '';
+    cart.forEach((item,i)=>{
+      container.innerHTML += `<div class="flex justify-between border-b py-2">
+        <span>${item.name} x ${item.qty}</span>
+        <span>${(item.price*item.qty).toLocaleString()} đ</span>
+      </div>`;
+    });
+  }
+  function checkout() { alert("Thanh toán thành công!"); cart=[]; localStorage.removeItem('cart'); updateCartCount(); showPage('home'); }
+
+  // Admin
+  function addProduct() {
+    const name = document.getElementById('adminName').value;
+    const price = parseInt(document.getElementById('adminPrice').value);
+    if(!name || !price) return;
+    products.push({id: Date.now(), name, price});
+    localStorage.setItem('products', JSON.stringify(products));
+    renderAdmin();
+  }
+  function renderAdmin() {
+    const adminList = document.getElementById('adminList');
+    adminList.innerHTML = '';
+    products.forEach((p,i)=>{
+      adminList.innerHTML += `<div class="flex justify-between border-b py-2">
+        <span>${p.name} - ${p.price.toLocaleString()} đ</span>
+        <button onclick="deleteProduct(${p.id})" class="text-red-500">Xoá</button>
+      </div>`;
+    });
+  }
+  function deleteProduct(id) {
+    products = products.filter(p=>p.id!==id);
+    localStorage.setItem('products', JSON.stringify(products));
+    renderAdmin();
+  }
+
+  // Init
+  updateCartCount();
+</script>
+</body>
+</html>
